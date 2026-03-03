@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 
+# Load .env only in development (optional)
+if os.getenv("ENVIRONMENT") != "production":
+    load_dotenv()
 
 app = FastAPI()
 
@@ -18,8 +21,13 @@ def generate_otp():
     return random.randint(100000, 999999)
 
 def send_otp_email(to_email, otp):
-    EMAIL_ADDRESS = "pentaridex@gmail.com"
+    EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "pentaridex@gmail.com")  # CHANGE 1: Use env var
     EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
+    
+    # CHANGE 2: Add error handling
+    if not EMAIL_PASSWORD:
+        print("ERROR: EMAIL_APP_PASSWORD not set in environment variables")
+        raise ValueError("EMAIL_APP_PASSWORD environment variable is required")
 
     msg = EmailMessage()
     msg["Subject"] = "PentaRideX - OTP Verification Code"
@@ -37,10 +45,17 @@ Do not share this code with anyone.
 — Team PentaRideX
 """)
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
+    except smtplib.SMTPAuthenticationError:
+        print("ERROR: Gmail authentication failed. Check EMAIL_APP_PASSWORD")
+        raise
+    except Exception as e:
+        print(f"ERROR: Failed to send email: {str(e)}")
+        raise
 
 def store_otp(email, otp):
     otp_storage[email] = {
@@ -97,10 +112,11 @@ async def home():
 
 @app.post("/register", response_class=HTMLResponse)
 async def register(email: str = Form(...)):
-    otp = generate_otp()
-    send_otp_email(email, otp)
-    store_otp(email, otp)
-    return f"""
+    try:
+        otp = generate_otp()
+        send_otp_email(email, otp)
+        store_otp(email, otp)
+        return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -122,6 +138,27 @@ async def register(email: str = Form(...)):
             <input type="text" name="otp" placeholder="Enter OTP" required>
             <button type="submit">Verify</button>
         </form>
+    </div>
+</body>
+</html>
+"""
+    except Exception as e:
+        return f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error</title>
+    <style>
+        body {{ font-family: Arial; background: #f0f0f0; }}
+        .container {{ max-width: 400px; margin: 100px auto; background: #fff; padding: 30px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2);}}
+        button {{ background: #dc3545; color: white; border: none; cursor: pointer; padding: 10px; border-radius: 5px;}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>❌ Error</h1>
+        <p>Failed to send OTP. Please try again.</p>
+        <button onclick="window.history.back()">Go Back</button>
     </div>
 </body>
 </html>
