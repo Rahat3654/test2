@@ -21,8 +21,8 @@ def generate_otp():
 
 def send_otp_email(to_email, otp):
     # Railway variables: Add these in the 'Variables' tab of your Railway project
-    EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-    EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
+    EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS",'pentaridex@gmail.com')
+    EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD",'kcjg zvmf mocp hwth')
 
     msg = EmailMessage()
     msg["Subject"] = "PentaRideX - OTP Verification Code"
