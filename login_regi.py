@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 
-load_dotenv()
 
 app = FastAPI()
 
@@ -20,7 +19,7 @@ def generate_otp():
 
 def send_otp_email(to_email, otp):
     EMAIL_ADDRESS = "pentaridex@gmail.com"
-    EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD","kcjg zvmf mocp hwth")
+    EMAIL_PASSWORD = "kcjg zvmf mocp hwth"
 
     msg = EmailMessage()
     msg["Subject"] = "PentaRideX - OTP Verification Code"
