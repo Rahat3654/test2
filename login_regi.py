@@ -1,14 +1,15 @@
+import os
+import random
+import resend
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
-import resend
-import random
 
-# Initialize Resend API
-resend.api_key = "re_PKJzkJsS_4d1SeEtnovoMnyXjUDxJb9H4"
+# Initialize Resend API from environment variable
+# Railway will provide this via your Dashboard settings
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 app = FastAPI()
 
-# Minimal HTML with doubled curly braces for CSS
 html_form = """
 <!DOCTYPE html>
 <html lang="en">
@@ -16,12 +17,12 @@ html_form = """
     <meta charset="UTF-8">
     <title>PentaRideX Registration</title>
     <style>
-        body {{ font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#f4f4f4; }}
+        body {{ font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#f4f4f4; margin:0; }}
         .container {{ background:white; padding:30px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); width:300px; text-align:center; }}
-        input[type="email"] {{ width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }}
+        input[type="email"] {{ width:90%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }}
         button {{ width:100%; padding:10px; background:#2980b9; color:white; border:none; border-radius:5px; cursor:pointer; }}
         button:hover {{ background:#3498db; }}
-        .otp-sent {{ color:green; margin-top:10px; }}
+        .otp-sent {{ color:green; margin-top:10px; font-size: 0.9em; }}
     </style>
 </head>
 <body>
@@ -38,19 +39,28 @@ html_form = """
 """
 
 @app.get("/", response_class=HTMLResponse)
-def get_form():
+async def get_form():
     return HTMLResponse(html_form.format(otp_message=""))
 
 @app.post("/", response_class=HTMLResponse)
-def send_otp(email: str = Form(...)):
+async def send_otp(email: str = Form(...)):
     otp = random.randint(100000, 999999)
 
-    resend.Emails.send({
-        "from": "onboarding@resend.dev",
-        "to": email,
-        "subject": "Your PentaRideX OTP",
-        "html": f"<p>Your OTP is: <strong>{otp}</strong></p>"
-    })
+    try:
+        resend.Emails.send({
+            "from": "onboarding@resend.dev",
+            "to": email,
+            "subject": "Your PentaRideX OTP",
+            "html": f"<p>Your OTP is: <strong>{otp}</strong></p>"
+        })
+        message = f'<div class="otp-sent">OTP sent successfully to {email}</div>'
+    except Exception as e:
+        message = f'<div style="color:red; margin-top:10px;">Error: {str(e)}</div>'
 
-    message = f'<div class="otp-sent">OTP sent successfully to {email}</div>'
     return HTMLResponse(html_form.format(otp_message=message))
+
+if __name__ == "__main__":
+    import uvicorn
+    # Railway sets the PORT environment variable automatically
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
