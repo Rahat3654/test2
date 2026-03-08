@@ -48,7 +48,7 @@ async def send_otp(email: str = Form(...)):
 
     try:
         resend.Emails.send({
-            "from": "onboarding@resend.dev",
+            "from": "verify@pentaridex.xyz",
             "to": email,
             "subject": "Your PentaRideX OTP",
             "html": f"<p>Your OTP is: <strong>{otp}</strong></p>"
